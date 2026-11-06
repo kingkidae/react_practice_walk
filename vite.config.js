@@ -62,12 +62,16 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), publicDataApi(env), seo(env)],
     server: { host: true },
     build: {
+      // three.js 묶음(약 540KB, gzip 130KB)은 지연 로딩이라 경고 기준을 조금 올림
+      chunkSizeWarningLimit: 600,
       rollupOptions: {
         output: {
           // 지도 라이브러리는 별도 파일로 분리해 첫 화면 로딩을 가볍게
           manualChunks(id) {
             if (id.includes('node_modules/leaflet') || id.includes('node_modules/react-leaflet') || id.includes('@react-leaflet')) return 'map'
             if (id.includes('node_modules/react') || id.includes('node_modules/scheduler')) return 'react'
+            // three.js 는 효과가 필요할 때만 불러오는 별도 파일
+            if (id.includes('node_modules/three')) return 'three'
           },
         },
       },

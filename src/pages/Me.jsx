@@ -10,6 +10,7 @@ import WalkTracker from '../components/WalkTracker.jsx'
 import DogProfileForm from '../components/DogProfileForm.jsx'
 import MapView from '../components/MapView.jsx'
 import { pinIcon } from '../lib/ui-helpers.js'
+import { fx } from '../effects/fx.js'
 
 export default function Me() {
   const [params, setParams] = useSearchParams()
@@ -55,7 +56,14 @@ function RecordTab({ profile, walks, onNeedProfile }) {
         </div>
       )}
 
-      <WalkTracker profile={profile} onSave={walks.add} />
+      <WalkTracker
+        profile={profile}
+        onSave={(w) => {
+          walks.add(w)
+          fx('burst', { y: window.innerHeight * 0.4, count: 60 })
+          fx('bubble', { text: `${profile?.name || '우리 아이'}와 ${w.km.toFixed(1)}km 산책 완료!`, y: window.innerHeight * 0.4 - 40 })
+        }}
+      />
 
       <div className="me-stats">
         <div className="me-stat">

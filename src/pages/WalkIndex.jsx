@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { Suspense, lazy, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useApi } from '../lib/api.js'
 import { usePageMeta } from '../lib/seo.js'
@@ -7,6 +7,18 @@ import { useDogProfile } from '../lib/dogProfile.js'
 import { kstParts, uvAt, pollenToday } from '../lib/indices.js'
 import ShareButton from '../components/ShareButton.jsx'
 import WarningBanner from '../components/WarningBanner.jsx'
+
+// three.js 날씨 효과는 따로 불러와 첫 화면 로딩에 영향이 없게
+const WeatherFx = lazy(() => import('../effects/WeatherFx.jsx'))
+
+// 지금 날씨 → 카드 효과 종류
+function fxMode(w, a, score) {
+  const pty = Number(w?.pty || 0)
+  if (pty === 3 || pty === 7 || pty === 2 || pty === 6) return 'snow'
+  if (pty) return 'rain'
+  if (Math.max(pmGrade('pm10', a?.pm10).level, pmGrade('pm25', a?.pm25).level) >= 2) return 'dust'
+  return score >= 70 ? 'sun' : 'calm'
+}
 import { fmtKm, fmtMinutes, fmtArea, LEVEL_LABEL, SIDO_LIST, nearbyWithCourses } from '../lib/geo.js'
 import { ScoreTag, Loading, ErrorBox, Segmented } from '../components/ui.jsx'
 import SidoPicker from '../components/SidoPicker.jsx'
@@ -126,6 +138,9 @@ export default function WalkIndex() {
             </div>
           )}
           <Link to={`/walk/${sido}/here`} className="best">
+            <Suspense fallback={null}>
+              <WeatherFx mode={fxMode(here.weather, here.air, here.score.total)} />
+            </Suspense>
             <div className="best__tag">
               <ScoreTag score={here.score.total} tone={here.score.grade.tone} size={112} label={here.score.grade.label} />
             </div>

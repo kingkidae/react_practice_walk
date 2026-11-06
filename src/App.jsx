@@ -1,4 +1,6 @@
-import { Suspense, lazy, useEffect } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
+import FxOverlay from './effects/FxOverlay.jsx'
+import { fx } from './effects/fx.js'
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Loading } from './components/ui.jsx'
 import { useDogProfile } from './lib/dogProfile.js'
@@ -22,9 +24,23 @@ const NAV = [
   { to: '/adopt', label: '입양하개', icon: HeartIcon },
 ]
 
+// 이스터 에그: 로고를 빠르게 5번 누르면 꼬리를 흔들며 발바닥이 터진다
 function Logo() {
+  const clicks = useRef([])
+  const [wag, setWag] = useState(0)
+  const onClick = (e) => {
+    const now = e.timeStamp
+    clicks.current = [...clicks.current.filter((t) => now - t < 1600), now]
+    if (clicks.current.length >= 5) {
+      clicks.current = []
+      const r = e.currentTarget.getBoundingClientRect()
+      setWag((w) => w + 1)
+      fx('burst', { x: r.left + 20, y: r.top + r.height / 2, count: 50 })
+      fx('bubble', { text: '멍멍! 산책 가자!', x: r.left + 90, y: r.bottom + 56 })
+    }
+  }
   return (
-    <NavLink to="/walk" className="logo" aria-label="같이 걷개 홈">
+    <NavLink to="/walk" className={`logo${wag ? ' is-wagging' : ''}`} key={wag} aria-label="같이 걷개 홈" onClick={onClick}>
       <svg width="40" height="40" viewBox="0 0 64 64" aria-hidden="true">
         <circle cx="32" cy="32" r="30" fill="var(--golden)" />
         <path d="M14 22c-5 3-6 15-2 21 5-2 8-10 8-17zM50 22c5 3 6 15 2 21-5-2-8-10-8-17z" fill="var(--golden-deep)" />
@@ -87,6 +103,8 @@ export default function App() {
         </p>
         <p>공공데이터포털(data.go.kr) 오픈 API를 활용했어요.</p>
       </footer>
+
+      <FxOverlay />
 
       <nav className="tabbar" aria-label="주요 메뉴">
         {NAV.map((n) => (

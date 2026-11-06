@@ -2354,3 +2354,144 @@ input[type='text'] {
 .shelter-card__addr {
   font-size: 0.85rem;
 }
+
+/* ---------- 효과 (three.js) / 이스터 에그 ---------- */
+.best {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.best > :not(.weather-fx) {
+  position: relative;
+  z-index: 1;
+}
+.weather-fx {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+.fx-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 1500;
+}
+.fx-bubble {
+  position: fixed;
+  z-index: 1600;
+  transform: translate(-50%, -100%);
+  background: var(--ink);
+  color: #fff8ee;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  padding: 10px 16px;
+  border-radius: 18px;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px -8px rgba(58, 42, 31, 0.6);
+  animation: bubble-in 2.2s ease forwards;
+  pointer-events: none;
+}
+.fx-bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  background: var(--ink);
+  transform: translateX(-50%) rotate(45deg);
+  border-radius: 3px;
+  z-index: -1;
+}
+@keyframes bubble-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -80%) scale(0.8);
+  }
+  12%,
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -100%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -110%) scale(1);
+  }
+}
+.paw-trail {
+  position: fixed;
+  left: 0;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 6px);
+  width: 300px;
+  height: 320px;
+  z-index: 950;
+  pointer-events: none;
+}
+@media (min-width: 860px) {
+  .paw-trail {
+    bottom: 10px;
+  }
+}
+.paw-trail__print {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  padding: 4px;
+  border: none;
+  background: none;
+  color: var(--golden-deep);
+  opacity: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  animation-name: paw-step;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+.paw-trail__print svg {
+  fill: currentColor;
+  display: block;
+}
+@keyframes paw-step {
+  0% {
+    opacity: 0;
+    scale: 0.5;
+  }
+  8% {
+    opacity: 0.85;
+    scale: 1.1;
+  }
+  14% {
+    scale: 1;
+  }
+  75% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.logo.is-wagging svg {
+  animation: wag 0.6s ease-in-out 2;
+  transform-origin: 50% 80%;
+}
+@keyframes wag {
+  25% {
+    transform: rotate(-14deg);
+  }
+  75% {
+    transform: rotate(14deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .weather-fx,
+  .fx-overlay,
+  .paw-trail {
+    display: none;
+  }
+}

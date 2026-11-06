@@ -1,0 +1,12 @@
+{
+  "name": "같이 걷개 - 반려견 산책 도우미",
+  "short_name": "같이 걷개",
+  "description": "산책지수, 산책로, 칼로리 계산기, 동물병원, 유기동물 입양 정보",
+  "lang": "ko-KR",
+  "start_url": "/walk",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FBF5EC",
+  "theme_color": "#FBF5EC",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

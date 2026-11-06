@@ -131,9 +131,9 @@ export function computeWalkScore({ weather, air, profile = null, uv = null, poll
     }
   }
   // 진드기 활동기 안내 (데이터가 아닌 일반 기준: 4~11월, 기온 10°C 이상에서 활발)
+  if (!notes.length) notes.push('산책하기 좋은 날씨예요. 충분히 냄새 맡을 시간을 주세요!')
   const tick = tickRisk(month, w.t)
   if (tick.level >= 1) notes.push(tick.note)
-  if (!notes.length) notes.push('산책하기 좋은 날씨예요. 충분히 냄새 맡을 시간을 주세요!')
 
   let total = parts.reduce((s, p) => s + p.score, 0) + deductions.reduce((s, d) => s + d.score, 0)
   if (caps.length) total = Math.min(total, ...caps)

@@ -682,13 +682,33 @@ async function weatherWarnings(sidoShort, key) {
     return { tm: it.tmFc || '', text: stripHtml(it.t6 || '') }
   }).then((w) => {
     const sido = SIDO.find((s) => s.short === sidoShort)
-    const names = [sido.short, ...sido.names].map((n) => n.replace(/(특별|광역|자치|통합)?(시|도)$/, ''))
-    // 't6' 은 "o 폭염경보 : 대구, 경상북도(경산, 영천) ..." 형식 — 해당 지역이 포함된 줄만 추린다
-    const lines = w.text
-      .split(/\n|(?=o\s)/)
-      .map((l) => l.replace(/^o\s*/, '').trim())
-      .filter((l) => l && names.some((n) => n && l.includes(n)))
-    return { tm: w.tm, items: lines.map((l) => l.split(':')[0].trim()).filter((v, i, a) => v && a.indexOf(v) === i), detail: lines }
+    // '강원도', '경상북도' 처럼 특보문에 쓰이는 이름의 앞부분 (예: 경상북도 → 경상북)
+    const names = [...new Set([sido.short, ...sido.names].map((n) => n.replace(/(특별|광역|자치|통합)?(시|도)$/, '')).filter((n) => n.length >= 2))]
+    const out = []
+    // 't6' 은 "o 한파주의보 : 경기도(가평, 양평서부), 강원도(태백, 영월), 대구 ..." 형식
+    for (const raw of w.text.split(/\n|(?=o\s)/)) {
+      const line = raw.replace(/^o\s*/, '').trim()
+      const [title, list = ''] = line.split(/\s*:\s*/)
+      // 바다 특보(풍랑·해일)는 산책과 관계없어 제외
+      if (!title || /풍랑|해일|없음/.test(title)) continue
+      // 괄호 밖의 쉼표로만 나눈다
+      const segs = []
+      let depth = 0
+      let cur = ''
+      for (const ch of list) {
+        if (ch === '(') depth++
+        if (ch === ')') depth--
+        if (ch === ',' && depth === 0) {
+          segs.push(cur.trim())
+          cur = ''
+        } else cur += ch
+      }
+      if (cur.trim()) segs.push(cur.trim())
+      // 지역 이름이 구간 맨 앞에 올 때만 해당 시도로 본다 ('경기도(광주…)'가 광주로 잡히지 않게)
+      const mine = segs.filter((s) => names.some((n) => s.startsWith(n)))
+      if (mine.length) out.push({ title, areas: mine })
+    }
+    return { tm: w.tm, items: [...new Set(out.map((o) => o.title))], detail: out.map((o) => `${o.title}: ${o.areas.join(', ')}`) }
   })
 }
 

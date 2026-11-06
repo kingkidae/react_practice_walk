@@ -15,18 +15,29 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y, x + w, y, r)
   ctx.closePath()
 }
+// 띄어쓰기 단위로 줄바꿈 (한 단어가 너무 길면 글자 단위로)
 function wrap(ctx, text, maxWidth, maxLines) {
   const lines = []
   let line = ''
-  for (const ch of text) {
-    if (ctx.measureText(line + ch).width > maxWidth) {
-      lines.push(line)
-      line = ch
-      if (lines.length === maxLines) break
-    } else line += ch
+  const push = (l) => lines.length < maxLines && lines.push(l)
+  for (const word of String(text).split(/(\s+)/)) {
+    const next = line + word
+    if (ctx.measureText(next).width <= maxWidth) {
+      line = next
+      continue
+    }
+    if (line.trim()) push(line.trim())
+    line = word.trimStart()
+    while (ctx.measureText(line).width > maxWidth) {
+      let k = line.length
+      while (k > 1 && ctx.measureText(line.slice(0, k)).width > maxWidth) k--
+      push(line.slice(0, k))
+      line = line.slice(k)
+    }
   }
-  if (lines.length < maxLines && line) lines.push(line)
-  if (lines.length === maxLines && ctx.measureText(text).width > maxWidth * maxLines) lines[maxLines - 1] = lines[maxLines - 1].slice(0, -1) + '…'
+  if (line.trim()) push(line.trim())
+  const used = lines.join('').replace(/\s/g, '').length
+  if (used < String(text).replace(/\s/g, '').length && lines.length) lines[lines.length - 1] = lines[lines.length - 1].replace(/.$/, '…')
   return lines
 }
 
@@ -34,7 +45,9 @@ function wrap(ctx, text, maxWidth, maxLines) {
  * data: { place, score, grade, toneColor, note, facts: [[label, value]], bestTime, dogName }
  */
 export async function makeCard(data) {
-  await Promise.all([document.fonts.load('80px Jua'), document.fonts.load('40px "Gowun Dodum"')]).catch(() => {})
+  // 한글 웹폰트는 글자별 조각(subset)으로 나뉘어 있어, 카드에 쓸 글자를 함께 넘겨야 모두 받아진다
+  const text = ['같이 걷개', '의 오늘 산책지수', '추천 산책 시간', '기상청·에어코리아 공공데이터 기반', data.place, data.grade, data.note, data.dogName, data.bestTime, String(data.score), ...data.facts.flat()].filter(Boolean).join('')
+  await Promise.all([document.fonts.load('80px Jua', text), document.fonts.load('40px "Gowun Dodum"', text)]).catch(() => {})
   const c = document.createElement('canvas')
   c.width = W
   c.height = H

@@ -2,11 +2,13 @@ import { useMemo, useState } from 'react'
 import { useApi } from '../lib/api.js'
 import { usePageMeta } from '../lib/seo.js'
 import { distanceKm, fmtKm, getPosition, SIDO_LIST } from '../lib/geo.js'
-import { hospitalTags, TAG_FILTERS } from '../lib/hospitalTags.js'
+import { placeTags, TAG_FILTERS_BY_TYPE } from '../lib/hospitalTags.js'
 import { Loading, ErrorBox, Segmented, Empty } from '../components/ui.jsx'
 import MapView from '../components/MapView.jsx'
 import { pinIcon, loadSido, saveSido } from '../lib/ui-helpers.js'
 
+const PIN = { hospital: '+', pharmacy: '약', grooming: '미', care: '집' }
+const PIN_COLOR = { hospital: 'var(--golden-deep)', pharmacy: '#6A6FB0', grooming: '#B5658A', care: 'var(--leaf)' }
 const RADII = [1, 3, 5, 10].map((r) => ({ value: r, label: `${r}km` }))
 const PAGE = 30
 
@@ -29,7 +31,7 @@ export default function Hospitals() {
   const [limit, setLimit] = useState(PAGE)
   const [selected, setSelected] = useState(null)
 
-  const all = useMemo(() => (data || []).map((h) => ({ ...h, tags: isHospital ? hospitalTags(h.name) : [] })), [data, isHospital])
+  const all = useMemo(() => (data || []).map((h) => ({ ...h, tags: placeTags(type, h.name) })), [data, type])
   const sigunguList = useMemo(() => [...new Set(all.filter((h) => h.sido === sido).map((h) => h.sigungu).filter(Boolean))].sort(), [all, sido])
 
   const list = useMemo(() => {
@@ -121,21 +123,21 @@ export default function Hospitals() {
         )}
         <label className="field field--grow" htmlFor="h-q">
           <span className="field__label">검색</span>
-          <input id="h-q" type="search" placeholder="병원 이름이나 주소" value={q} onChange={(e) => { setQ(e.target.value); setLimit(PAGE) }} />
+          <input id="h-q" type="search" placeholder="이름이나 주소" value={q} onChange={(e) => { setQ(e.target.value); setLimit(PAGE) }} />
         </label>
       </div>
       {posMsg && <p className="hint hint--error">{posMsg}</p>}
 
-      {isHospital && (
-      <div className="tag-filter" role="group" aria-label="병원 특징 필터">
-        {TAG_FILTERS.map((t) => (
+      {(
+      <div className="tag-filter" role="group" aria-label={`${typeLabel} 특징 필터`}>
+        {(TAG_FILTERS_BY_TYPE[type] || []).map((t) => (
           <button key={t} type="button" className={`tag-toggle${tags.includes(t) ? ' is-on' : ''}`} aria-pressed={tags.includes(t)} onClick={() => toggleTag(t)}>
             {t}
           </button>
         ))}
       </div>
       )}
-      {loading && <Loading text="전국 동물병원 정보를 불러오고 있어요" />}
+      {loading && <Loading text={`전국 ${typeLabel} 정보를 불러오고 있어요`} />}
       {error && <ErrorBox error={error} />}
 
       {data && (
@@ -143,7 +145,7 @@ export default function Hospitals() {
           <div className="split__map">
             <MapView
               className="map--sticky"
-              label="동물병원 지도"
+              label={`${typeLabel} 지도`}
               center={pos ? [pos.lat, pos.lng] : SIDO_LIST.find((s) => s.short === sido)?.center}
               zoom={12}
               fit={sel ? [] : [...onMap.map((h) => [h.lat, h.lng]), ...(pos && mode === 'near' ? [[pos.lat, pos.lng]] : [])]}
@@ -155,7 +157,7 @@ export default function Hospitals() {
                   id: h.id,
                   lat: h.lat,
                   lng: h.lng,
-                  icon: pinIcon({ text: '+', color: h.tags.includes('24시·응급') ? 'var(--score-bad)' : 'var(--golden-deep)', active: h.id === selected }),
+                  icon: pinIcon({ text: PIN[type] || '+', color: h.tags.some((t) => t.startsWith('24시')) ? 'var(--score-bad)' : PIN_COLOR[type] || 'var(--golden-deep)', active: h.id === selected }),
                   z: h.id === selected ? 40 : 0,
                   onClick: () => setSelected(h.id),
                   popup: (
@@ -169,8 +171,8 @@ export default function Hospitals() {
               ]}
             />
             <ul className="legend">
-              <li><span className="legend__dot" style={{ background: 'var(--golden-deep)' }} />동물병원</li>
-              <li><span className="legend__dot" style={{ background: 'var(--score-bad)' }} />24시·응급</li>
+              <li><span className="legend__dot" style={{ background: PIN_COLOR[type] || 'var(--golden-deep)' }} />{typeLabel}</li>
+              {(type === 'hospital' || type === 'pharmacy') && <li><span className="legend__dot" style={{ background: 'var(--score-bad)' }} />24시</li>}
               {pos && <li><span className="legend__dot" style={{ background: '#3E7CB1' }} />내 위치</li>}
             </ul>
           </div>
@@ -210,7 +212,7 @@ export default function Hospitals() {
               <button className="btn btn--ghost btn--block" onClick={() => setLimit((l) => l + PAGE)}>더 보기 ({list.length - limit}곳 남음)</button>
             )}
             <p className="fine">
-              {isHospital ? '진료 특징 태그는 병원 이름에 들어 있는 단어(24시, 고양이, 특수동물, 치과 등)로 추정한 거예요. 실제 진료 과목과 진료 시간은 방문 전에 전화로 확인해 주세요.' : '영업시간과 예약 가능 여부는 방문 전에 전화로 확인해 주세요.'}
+              {isHospital ? '진료 특징 태그는 병원 이름에 들어 있는 단어(24시, 고양이, 특수동물, 치과 등)로 추정한 거예요. 실제 진료 과목과 진료 시간은 방문 전에 전화로 확인해 주세요.' : type === 'pharmacy' ? '동물약국 인허가에는 동물용 의약품을 함께 파는 일반 약국도 포함돼요. 이름에 동물·펫이 들어간 곳은 "동물 전문 약국"으로 표시했어요. 원하는 약이 있는지 전화로 먼저 확인해 주세요.' : '특징 태그는 업체 이름에 들어 있는 단어로 추정한 거예요. 영업시간과 예약 가능 여부는 방문 전에 전화로 확인해 주세요.'}
               데이터: 행정안전부 {typeLabel} 인허가 정보{meta?.updated ? ` (${meta.updated} 기준)` : ''}, 영업 중인 곳만 표시.
             </p>
           </div>

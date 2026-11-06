@@ -14,7 +14,7 @@ export default function TrailDetail() {
   const mc = data?.course
   usePageMeta({
     title: mc ? `${mc.name} 코스 지도·거리·난이도` : '산책로 상세',
-    description: mc ? `${mc.sigun} ${mc.name}: ${mc.distanceKm}km, 약 ${Math.round((mc.minutes || 0) / 60)}시간. ${(mc.summary || '').replace(/s+/g, ' ').slice(0, 90)}` : undefined,
+    description: mc ? `${mc.sigun} ${mc.name}: ${mc.distanceKm}km, 약 ${Math.round((mc.minutes || 0) / 60)}시간. ${(mc.summary || '').replace(/\s+/g, ' ').slice(0, 90)}` : undefined,
   })
 
   if (loading) return <div className="page"><Loading text="경로를 그리고 있어요" /></div>

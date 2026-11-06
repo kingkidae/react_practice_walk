@@ -5,7 +5,8 @@ import { usePageMeta } from '../lib/seo.js'
 import { useFavorites } from '../lib/favorites.js'
 import { fmtDate } from '../lib/geo.js'
 import { Loading, ErrorBox, Segmented, Empty } from '../components/ui.jsx'
-import { rememberAnimals, dday, sexLabel } from '../lib/ui-helpers.js'
+import { rememberAnimals, dday, sexLabel, loadSido } from '../lib/ui-helpers.js'
+import { SIDO_LIST } from '../lib/geo.js'
 import Shelters from '../components/Shelters.jsx'
 import LostSearch from '../components/LostSearch.jsx'
 
@@ -44,6 +45,9 @@ export default function Adopt() {
   }
 
   const sidoRes = useApi('/api/adopt/sido')
+  // 저장된 내 지역을 보호소 API의 시도 코드로 변환
+  const myFull = SIDO_LIST.find((s) => s.short === loadSido(''))?.full
+  const myUpr = (sidoRes.data || []).find((s) => myFull && s.orgdownNm === myFull)?.orgCd || ''
   const sggRes = useApi(f.upr_cd ? `/api/adopt/sigungu?upr_cd=${f.upr_cd}` : null)
   const kindRes = useApi(f.upkind ? `/api/adopt/kind?up_kind_cd=${f.upkind}` : null)
   const listPath = `/api/adopt/list?${qs({ upr_cd: f.upr_cd, org_cd: f.org_cd, care_reg_no: f.care_reg_no, upkind: f.upkind, kind: f.kind, bgnde: f.bgnde, endde: f.endde, state: f.state, pageNo: page, numOfRows: ROWS })}`
@@ -125,6 +129,12 @@ export default function Adopt() {
               <Segmented options={STATES} value={f.state} onChange={(v) => set({ state: v })} label="보호 상태" />
             </div>
           </div>
+          {f.care_reg_no && (
+            <div className="extras">
+              <span className="chip">보호소: {f.careName}</span>
+              <button className="link-btn" onClick={() => set({ care_reg_no: '', careName: '' })}>보호소 조건 지우기</button>
+            </div>
+          )}
           {listRes.loading && <Loading text="보호 중인 아이들을 찾고 있어요" />}
           {listRes.error && <ErrorBox error={listRes.error} />}
           {listRes.data && (
@@ -149,8 +159,8 @@ export default function Adopt() {
         </>
       )}
 
-      {tab === 'shelter' && <Shelters sidoList={sidoRes.data || []} onPick={(s) => { setF((x) => ({ ...x, upr_cd: s.uprCd || x.upr_cd, org_cd: '', care_reg_no: s.id, careName: s.name, period: 90, bgnde: daysAgo(90), endde: daysAgo(0) })); setPage(1); setTab('list') }} />}
-      {tab === 'lost' && <LostSearch sidoList={sidoRes.data || []} fav={fav} Grid={AnimalGrid} />}
+      {tab === 'shelter' && <Shelters key={myUpr} defaultUpr={myUpr} sidoList={sidoRes.data || []} onPick={(s) => { setF((x) => ({ ...x, upr_cd: s.uprCd || x.upr_cd, org_cd: '', care_reg_no: s.id, careName: s.name, period: 90, bgnde: daysAgo(90), endde: daysAgo(0) })); setPage(1); setTab('list') }} />}
+      {tab === 'lost' && <LostSearch key={myUpr} defaultUpr={myUpr} sidoList={sidoRes.data || []} fav={fav} Grid={AnimalGrid} />}
 
       {tab === 'fav' &&
         (fav.list.length ? (

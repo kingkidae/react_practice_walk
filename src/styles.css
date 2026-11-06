@@ -2307,3 +2307,50 @@ input[type='text'] {
 .bar--minus .bar__fill {
   background: var(--score-bad) !important;
 }
+.shelter-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 12px;
+}
+.shelter-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.shelter-card__name {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.15rem;
+}
+.shelter-card__nums {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 4px 0;
+}
+.shelter-card__nums div {
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  padding: 6px 8px;
+  text-align: center;
+}
+.shelter-card__nums dt {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+.shelter-card__nums dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+}
+.shelter-card__addr {
+  font-size: 0.85rem;
+}

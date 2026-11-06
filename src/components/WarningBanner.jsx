@@ -1,21 +1,15 @@
-import { useState } from 'react'
-
-/** 기상청 기상특보 — 해당 지역에 발효 중인 특보 */
+/** 기상청 기상특보 — 이 시도에 발효 중인 육상 특보와 해당 지역 */
 export default function WarningBanner({ warnings }) {
-  const [open, setOpen] = useState(false)
   return (
     <div className="notice notice--warn" role="alert">
       <div className="notice__row">
         <strong>기상특보 발효 중</strong>
         <span>{warnings.items.join(', ')}</span>
-        <button className="link-btn" onClick={() => setOpen((v) => !v)} aria-expanded={open}>{open ? '접기' : '자세히'}</button>
       </div>
-      {open && (
-        <ul className="notice__list">
-          {warnings.detail.map((d) => <li key={d}>{d}</li>)}
-        </ul>
-      )}
-      <p className="hint">특보 중에는 산책을 짧게 하거나 실내 놀이로 대신해 주세요.</p>
+      <ul className="notice__list">
+        {warnings.detail.map((d) => <li key={d}>{d}</li>)}
+      </ul>
+      <p className="hint">위 지역에 계신다면 산책 점수가 좋아도 짧게 다녀오거나 실내 놀이로 대신해 주세요. 산책지수는 현재 관측값 기준이라 특보와 다를 수 있어요.</p>
     </div>
   )
 }

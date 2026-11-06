@@ -17,7 +17,6 @@ export default function Hospitals() {
   const types = useApi('/api/places/types')
   const typeLabel = types.data?.find((t) => t.id === type)?.label || '동물병원'
   const isHospital = type === 'hospital'
-  const { data, meta, error, loading } = useApi(`/api/places?type=${type}`)
   usePageMeta({ title: '내 주변 동물병원·반려생활 찾기', description: '현재 위치나 지역별로 영업 중인 동물병원을 찾고, 24시·고양이·특수동물 등 특징과 전화번호, 길찾기를 확인하세요.' })
   const [mode, setMode] = useState('region')
   const [pos, setPos] = useState(null)
@@ -30,6 +29,11 @@ export default function Hospitals() {
   const [q, setQ] = useState('')
   const [limit, setLimit] = useState(PAGE)
   const [selected, setSelected] = useState(null)
+  // 내 주변: 반경 10km 를 한 번에 받아 두고 화면에서 1·3·5·10km 로 거름 (위치는 약 100m 단위로 반올림해 캐시 활용)
+  const placesPath = mode === 'near' && pos
+    ? `/api/places?type=${type}&lat=${pos.lat.toFixed(3)}&lng=${pos.lng.toFixed(3)}&radius=10`
+    : mode === 'near' ? null : `/api/places?type=${type}&sido=${encodeURIComponent(sido)}`
+  const { data, meta, error, loading } = useApi(placesPath)
 
   const all = useMemo(() => (data || []).map((h) => ({ ...h, tags: placeTags(type, h.name) })), [data, type])
   const sigunguList = useMemo(() => [...new Set(all.filter((h) => h.sido === sido).map((h) => h.sigungu).filter(Boolean))].sort(), [all, sido])

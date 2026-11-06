@@ -1,0 +1,6 @@
+# Vercel CLI 업로드 제외 (API 키는 Vercel 환경변수로 넣기)
+.env
+.env.*
+!.env.example
+node_modules
+dist

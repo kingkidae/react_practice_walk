@@ -2,9 +2,9 @@ import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 import { createApiMiddleware, listCourseIds } from './server/publicApi.js'
 
-// .env 의 API_KEY 는 서버(미들웨어)에서만 사용하고 브라우저 번들에는 포함하지 않는다.
+// .env 의 VITE_API_KEY 는 서버(미들웨어)에서만 사용하고 브라우저 번들에는 포함하지 않는다.
 function publicDataApi(env) {
-  const middleware = createApiMiddleware(() => (env.API_KEY || '').trim())
+  const middleware = createApiMiddleware(() => (env.VITE_API_KEY || '').trim())
   return {
     name: 'public-data-api',
     configureServer(server) {
@@ -41,7 +41,7 @@ function seo(env) {
       const today = new Date().toISOString().slice(0, 10)
       const urls = STATIC_ROUTES.map(([p, freq, pri]) => ({ loc: site + p, lastmod: today, freq, pri }))
       try {
-        for (const c of await listCourseIds((env.API_KEY || '').trim())) {
+        for (const c of await listCourseIds((env.VITE_API_KEY || '').trim())) {
           const m = c.modified || ''
           urls.push({ loc: `${site}/trails/${c.id}`, lastmod: m.length >= 8 ? `${m.slice(0, 4)}-${m.slice(4, 6)}-${m.slice(6, 8)}` : today, freq: 'monthly', pri: '0.6' })
         }

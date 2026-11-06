@@ -21,7 +21,7 @@ npm run dev
 `.env`
 
 ```
-API_KEY=공공데이터포털 일반 인증키(Decoding)
+VITE_API_KEY=공공데이터포털 일반 인증키(Decoding)
 SITE_URL=https://배포도메인   # canonical·OG·sitemap 용 (선택)
 ```
 
@@ -67,3 +67,16 @@ SITE_URL=https://배포도메인   # canonical·OG·sitemap 용 (선택)
 - 산책지수: 기온(체감) 30 + 강수 25 + 미세먼지 25 + 바람 10 + 습도 10, 비·눈·미세먼지 매우 나쁨·폭염·한파 시 상한 (`src/lib/walkScore.js`)
 - 보호자 칼로리: ACSM 보행/달리기 대사 방정식
 - 반려견 칼로리: Taylor 외(1982) `P = 10.7·M^-0.316·v + 6.03·M^-0.303 (W/kg)` × 길 종류·산책 스타일 보정
+
+## Vercel 배포
+
+`/api/*` 는 개발 서버(Vite) 미들웨어로만 동작하므로, 배포 시에는 `api/index.js`(Vercel 서버리스 함수)가 같은 코드(`server/publicApi.js`)를 실행합니다.
+
+1. Vercel 프로젝트 **Settings → Environment Variables** 에 추가 (Production·Preview 모두)
+   - `VITE_API_KEY` = 공공데이터포털 일반 인증키(Decoding)
+   - `SITE_URL` = 배포 주소 (예: `https://gachi-geotgae.vercel.app`) — canonical·OG·sitemap 용
+2. CSV 5개(`veter.csv`, `cityparkdata.csv`, `animal_*.csv`)를 저장소에 함께 올립니다. `vercel.json` 의 `includeFiles` 로 함수에 포함됩니다.
+3. 환경변수를 바꾼 뒤에는 **Redeploy** 해야 반영됩니다.
+4. 확인: `https://배포주소/api/status` — 모든 항목이 `"ok": true` 인지 확인합니다.
+
+`vercel.json` 이 하는 일: `/api/*` → 함수 연결, 새로고침해도 404가 나지 않도록 화면 경로를 `index.html` 로 연결, 함수 실행 시간 60초.

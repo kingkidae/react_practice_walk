@@ -2,7 +2,7 @@
 // - 브라우저에 API 키를 노출하지 않고, CORS 문제를 피하며, 응답을 메모리에 캐시한다.
 import fs from 'node:fs'
 import path from 'node:path'
-import { loadHospitals, hospitalsUpdated, parseCsv, loadPlaces, availablePlaceTypes } from './hospitals.js'
+import { loadHospitals, parseCsv, loadPlaces, availablePlaceTypes } from './hospitals.js'
 
 const BASE = 'https://apis.data.go.kr'
 
@@ -43,13 +43,16 @@ function kstNow() {
 const pad = (n) => String(n).padStart(2, '0')
 const ymd = (d) => `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}`
 
+// 배포 사이트(HTTPS)에서 http 이미지가 막히지 않도록 https 로 바꾼다 (두 이미지 서버 모두 https 지원)
+const https = (u) => (typeof u === 'string' ? u.replace(/^http:\/\//i, 'https://') : u)
+
 function asArray(x) {
   if (!x) return []
   return Array.isArray(x) ? x : [x]
 }
 
 async function callDataGo(apiId, path, params, key) {
-  if (!key) throw new ApiError('NO_KEY', '.env 에 API_KEY 가 없습니다.', apiId)
+  if (!key) throw new ApiError('NO_KEY', '.env 에 VITE_API_KEY 가 없습니다.', apiId)
   const qs = new URLSearchParams(params).toString()
   const url = `${BASE}${path}?serviceKey=${encodeURIComponent(key)}&${qs}`
   let text
@@ -462,7 +465,7 @@ async function petPlaces(lat, lng, radius, key) {
       typeId: String(it.contenttypeid || ''),
       addr: [it.addr1, it.addr2].filter(Boolean).join(' '),
       tel: it.tel || '',
-      image: it.firstimage || it.firstimage2 || '',
+      image: https(it.firstimage || it.firstimage2 || ''),
       lat: Number(it.mapy) || null,
       lng: Number(it.mapx) || null,
       distM: it.dist != null ? Math.round(Number(it.dist)) : null,
@@ -585,8 +588,8 @@ async function adopt(op, params, key) {
 function normalizeAnimal(a) {
   return {
     id: String(a.desertionNo),
-    image: a.popfile1 || a.popfile || '',
-    images: [a.popfile1, a.popfile2, a.popfile3, a.popfile4, a.popfile5, a.popfile6, a.popfile7, a.popfile8].filter(Boolean),
+    image: https(a.popfile1 || a.popfile || ''),
+    images: [a.popfile1, a.popfile2, a.popfile3, a.popfile4, a.popfile5, a.popfile6, a.popfile7, a.popfile8].filter(Boolean).map(https),
     upKind: a.upKindNm || (String(a.kindFullNm || '').match(/\[(.+?)\]/) || [])[1] || '',
     kind: a.kindNm || String(a.kindFullNm || '').replace(/\[.+?\]\s*/, ''),
     color: a.colorCd || '',
@@ -778,7 +781,20 @@ export function createApiMiddleware(getKey) {
           } catch {
             return send(404, { error: { code: 'NO_FILE', message: '해당 CSV 파일을 프로젝트 폴더에서 찾지 못했습니다.' } })
           }
-          return ok(entry.data, { updated: entry.updated })
+          // 전국 목록은 수 MB라 Vercel 응답 한도(4.5MB)를 넘으므로 지역 또는 반경으로 잘라 보낸다
+          let list
+          if (q.lat && q.lng) {
+            const c = { lat: Number(q.lat), lng: Number(q.lng) }
+            const r = Math.min(20, Number(q.radius) || 10)
+            list = entry.data.filter((h) => h.lat && Math.abs(h.lat - c.lat) < r / 100 && Math.abs(h.lng - c.lng) < r / 80).filter((h) => haversine(c, h) <= r)
+          } else if (q.sido) {
+            list = entry.data.filter((h) => h.sido === q.sido)
+          } else {
+            return send(400, { error: { code: 'NEED_AREA', message: '지역(sido) 또는 위치(lat,lng)를 함께 보내 주세요.' } })
+          }
+          // 화면에서 쓰지 않는 중복 주소 필드는 빼서 응답을 가볍게
+          const slim = list.map((h) => ({ id: h.id, name: h.name, addr: h.addr, tel: h.tel, lat: h.lat, lng: h.lng, sido: h.sido, sigungu: h.sigungu }))
+          return ok(slim, { updated: entry.updated })
         }
         case '/api/parks':
           return ok(await regionParks(q.sido || '서울'))
@@ -796,15 +812,6 @@ export function createApiMiddleware(getKey) {
           if (!c) return send(404, { error: { code: 'NOT_FOUND', message: '산책로를 찾지 못했습니다.' } })
           if (!c.gpxpath) return send(404, { error: { code: 'NO_TRACK', message: '이 산책로는 경로 파일이 제공되지 않습니다.' } })
           return ok({ course: c, track: await gpxTrack(c.gpxpath) })
-        }
-        case '/api/hospitals': {
-          let data
-          try {
-            data = loadHospitals(sidoOf)
-          } catch {
-            return send(500, { error: { code: 'NO_FILE', message: '프로젝트 폴더에서 veter.csv 파일을 찾지 못했습니다.' } })
-          }
-          return ok(data, { updated: hospitalsUpdated() })
         }
         case '/api/adopt/sido':
           return ok((await cached('adopt:sido', 24 * 3600e3, () => adopt('sido_v2', {}, key))).items)
